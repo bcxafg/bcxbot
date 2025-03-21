@@ -1,27 +1,5 @@
 
 services:
-#  db:
-#    image: postgis/postgis:latest
-#    container_name: db_pnx
-#    volumes:
-#      - ../data:/var/lib/postgresql/data
-#    restart: unless-stopped
-#    env_file:
-#      - .env
-#
-#
-#  pgadmin:
-#    image: elestio/pgadmin
-#    container_name: pgadmin_pnx
-#    ports:
-#      - "8080:80"
-#    volumes:
-#      - pgadmin_data:/var/lib/pgadmin
-#    restart: unless-stopped
-#    env_file:
-#      - .env
-
-
   nginx:
     image: nginx:latest
     container_name: nginx_bcx
@@ -32,16 +10,11 @@ services:
       - ../nginx/nginx.conf:/etc/nginx/nginx.conf
       - ../nginx/conf.d/base.conf:/etc/nginx/conf.d/base.conf
       - ../logs/nginx:/var/log/nginx
+      - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt
     restart: unless-stopped
-#    depends_on:
-#      - web
-
-
-#  redis:
-#    image: redis:latest
-#    container_name: redis_pnx
-#    volumes:
-#      - redis_data:/data
+    env_file:
+      - .env
 
 
   bot:
@@ -55,13 +28,3 @@ services:
       - ../bot:/app
       - ../logs/bot:/app/logs
     restart: unless-stopped
-#    depends_on:
-#      - db
-    env_file:
-      - .env
-
-
-volumes:
-  pgadmin_data:
-  redis_data:
-    driver: local

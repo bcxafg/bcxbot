@@ -7,7 +7,14 @@ DEBUG = bool(int(os.getenv('DEBUG')))
 if DEBUG:
     TOKEN = os.getenv('TELEGRAM_BOT_TOKEN_TEST', '')  # Bot token should be set in environment variables
 else:
-    TOKEN = os.getenv('TELEGRAM_BOT_TOKEN_TEST', '')  # Bot token should be set in environment variables
+    TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '')  # Bot token should be set in environment variables
+
+
+# webhook settings
+WEBHOOK_DOMAIN = os.getenv('WEBHOOK_DOMAIN', '')
+WEBHOOK_PATH = f"/{TOKEN}"
+WEBHOOK_URL = f"https://{WEBHOOK_DOMAIN}{WEBHOOK_PATH}"
+
 
 # Command descriptions
 COMMANDS = {

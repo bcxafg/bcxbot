@@ -14,6 +14,7 @@ import pytz
 from simpleeval import simple_eval
 from typing import Dict, Any, Tuple
 
+
 def is_math_expression(text: str) -> bool:
     """Check if the command is a mathematical expression."""
     if not text:
@@ -118,9 +119,7 @@ async def start_command(update: Update,
     """Handle the /start command"""
     user = update.message.from_user
     logger.info(f"User {user.username} (ID: {user.id}) started the bot")
-    await update.message.reply_text(WELCOME_MESSAGE,
-                                        parse_mode=ParseMode.MARKDOWN)
-    await update.message.reply_text(WELCOME_MESSAGE)
+    await update.message.reply_text(WELCOME_MESSAGE, parse_mode=ParseMode.HTML.value)
 
 
 async def parse_currency_input(args: list,
@@ -428,7 +427,7 @@ async def help_command(update: Update,
     for cmd, desc in COMMANDS.items():
         help_text += f"\n/{cmd} - {desc}"
 
-    await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
+    await update.message.reply_text(help_text, parse_mode=ParseMode.HTML.value)
 
 
 async def error_handler(update: Update,
@@ -447,7 +446,7 @@ async def error_handler(update: Update,
     if update and update.effective_message:
         try:
             await update.effective_message.reply_text(
-                error_message, parse_mode=ParseMode.MARKDOWN)
+                error_message, parse_mode=ParseMode.HTML.value)
         except Exception as e:
             logger.error(f"Failed to send error message: {e}")
 
@@ -469,7 +468,7 @@ async def groupid_command(update: Update,
         await message.reply_text(
             f"📢 Group ID: `{chat.id}`\n"
             f"Group Name: *{chat.title}*",
-            parse_mode=ParseMode.MARKDOWN)
+            parse_mode=ParseMode.HTML.value)
         logger.info(f"Sent group ID information for chat {chat.id}")
     else:
         await message.reply_text("❌ This command only works in group chats.\n"

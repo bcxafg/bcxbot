@@ -25,7 +25,7 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                     description="Type a math expression (e.g., 2+2)",
                     input_message_content=InputTextMessageContent(
                         message_text="*Calculator Usage:*\nType a math expression (e.g., 2+2)",
-                        parse_mode=ParseMode.MARKDOWN
+                        parse_mode=ParseMode.HTML.value
                     )
                 )
             ]
@@ -42,7 +42,7 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                     description=str(raw_result) if raw_result is not None else "Invalid expression",
                     input_message_content=InputTextMessageContent(
                         message_text=result,
-                        parse_mode=ParseMode.MARKDOWN if raw_result is not None else None
+                        parse_mode=ParseMode.HTML.value if raw_result is not None else None
                     )
                 )
             ]
