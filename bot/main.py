@@ -5,6 +5,7 @@ from aiohttp import web
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.client.session.aiohttp import AiohttpSession
+from aiogram.client.default import DefaultBotProperties
 from datetime import datetime
 
 from config import TOKEN, DEBUG
@@ -55,7 +56,8 @@ async def handle_update(request: web.Request):
 async def main():
     # Создание экземпляра бота и диспетчера
     session = AiohttpSession()
-    bot = Bot(token=TOKEN, parse_mode=ParseMode.MARKDOWN, session=session)
+    bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML.value), session=session)
+
     dp = Dispatcher()
 
     # Регистрация обработчиков
