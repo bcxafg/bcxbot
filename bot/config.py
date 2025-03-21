@@ -10,6 +10,11 @@ else:
     TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '')  # Bot token should be set in environment variables
 
 
+WEBHOOK_DOMAIN = os.getenv('WEBHOOK_DOMAIN', '')
+WEBHOOK_PATH = f"/{TOKEN}"
+WEBHOOK_URL = f"https://{WEBHOOK_DOMAIN}{WEBHOOK_PATH}"
+
+
 # Command descriptions
 COMMANDS = {
     'start': 'Start the bot and see welcome message',

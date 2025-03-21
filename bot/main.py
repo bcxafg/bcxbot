@@ -1,15 +1,18 @@
 import asyncio
 import logging
-from datetime import datetime
+import os
+from aiohttp import web
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
-from aiogram.client.default import DefaultBotProperties
-from aiogram.filters import CommandStart, Command
-from config import TOKEN
+from aiogram.client.session.aiohttp import AiohttpSession
+from datetime import datetime
+
+from config import TOKEN, DEBUG
 from handlers import register_handlers
 from inline_handler import register_inline_handler
 
-# Configure logging (combining features from original code)
+
+# Настройка логирования
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -20,52 +23,77 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-async def cleanup():
-    """Clean up resources (from original code)"""
-    logger.info("🧹 Starting cleanup...")
-    #In aiogram, cleanup is handled automatically when the bot stops.  No explicit actions needed here.
-    logger.info("Cleanup completed")
+
+# Параметры вебхука
+WEBHOOK_DOMAIN = os.getenv('WEBHOOK_DOMAIN', 'bcxbot.duckdns.org')
+WEBHOOK_PATH = f"/{TOKEN}"
+WEBHOOK_URL = f"https://{WEBHOOK_DOMAIN}{WEBHOOK_PATH}"
+
+# Параметры веб-сервера
+WEBAPP_HOST = '0.0.0.0'  # Слушать на всех интерфейсах
+WEBAPP_PORT = 8443
+
+
+async def on_startup(bot: Bot):
+    await bot.set_webhook(WEBHOOK_URL)
+    logger.info(f"Webhook установлен на {WEBHOOK_URL}")
+
+
+async def on_shutdown(bot: Bot):
+    await bot.delete_webhook()
+    logger.info("Webhook удалён")
+
+
+async def handle_update(request: web.Request):
+    bot = request.app['bot']
+    dispatcher = request.app['dispatcher']
+    update = await request.json()
+    await dispatcher.feed_raw_update(bot, update)
+    return web.Response()
+
 
 async def main():
-    try:
-        # Check for required token (from original code)
-        if not TOKEN:
-            logger.error("❌ No token provided. Set TELEGRAM_BOT_TOKEN environment variable.")
-            return 1
+    # Создание экземпляра бота и диспетчера
+    session = AiohttpSession()
+    bot = Bot(token=TOKEN, parse_mode=ParseMode.MARKDOWN, session=session)
+    dp = Dispatcher()
 
-        bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
-        dp = Dispatcher()
+    # Регистрация обработчиков
+    register_handlers(dp)
+    register_inline_handler(dp)
 
-        # Register handlers (from edited code)
-        register_handlers(dp)
-        register_inline_handler(dp)
+    if DEBUG:
+        # Режим отладки: использовать long polling
+        logger.info("🚀 Запуск в режиме DEBUG (Polling)")
+        await dp.start_polling(bot)
+    else:
+        # Продакшн-режим: использовать webhook
+        logger.info("🚀 Запуск в режиме PRODUCTION (Webhook)")
 
-        # Start polling (from edited code, with error handling from original)
-        logger.info("Starting bot...")
+        # Создание веб-приложения aiohttp
+        app = web.Application()
+        app['bot'] = bot
+        app['dispatcher'] = dp
+        app.router.add_post(WEBHOOK_PATH, handle_update)
+
+        # Настройка хуков на запуск и остановку
+        app.on_startup.append(lambda _: on_startup(bot))
+        app.on_shutdown.append(lambda _: on_shutdown(bot))
+
+        # Запуск веб-сервера
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, WEBAPP_HOST, WEBAPP_PORT)
+        await site.start()
+
+        logger.info(f"Веб-сервер запущен на {WEBAPP_HOST}:{WEBAPP_PORT}")
+
+        # Бесконечный цикл для поддержания работы
         try:
-            await dp.start_polling(bot, allowed_updates=[
-                "message",
-                "callback_query",
-                "inline_query"
-            ])
-            logger.info("✅ Bot polling started successfully")
-        except Exception as e:
-            logger.error(f"❌ Error in polling loop: {e}")
-            return 1
-        finally:
-            logger.info("Exiting polling loop...")
-
-
-    except Exception as e:
-        logger.error(f"🔥 Fatal error: {str(e)}")
-        if bot:
-            await bot.close()  #Using bot.close() instead of app.stop() for aiogram
-        return 1
-    finally:
-        logger.info("Cleaning up before exit...")
-        await cleanup()
-        logger.info("Cleanup completed")
-
+            while True:
+                await asyncio.sleep(3600)  # Спать час
+        except (KeyboardInterrupt, SystemExit):
+            logger.info("Остановка бота...")
 
 if __name__ == "__main__":
     asyncio.run(main())

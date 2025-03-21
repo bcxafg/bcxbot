@@ -67,7 +67,7 @@ def calculate_result(expression: str) -> tuple[str, float | None]:
 async def start_command(message: Message):
     """Handle the /start command"""
     logger.info(f"User {message.from_user.username} (ID: {message.from_user.id}) started the bot")
-    await message.reply(WELCOME_MESSAGE, parse_mode=ParseMode.MARKDOWN)
+    await message.reply(WELCOME_MESSAGE, parse_mode=ParseMode.HTML.value)
 
 @router.message(Command("help"))
 async def help_command(message: Message):
@@ -75,7 +75,7 @@ async def help_command(message: Message):
     help_text = HELP_MESSAGE
     for cmd, desc in COMMANDS.items():
         help_text += f"\n/{cmd} - {desc}"
-    await message.reply(help_text, parse_mode=ParseMode.MARKDOWN)
+    await message.reply(help_text, parse_mode=ParseMode.HTML.value)
 
 
 async def parse_currency_input(args: list, base_currency: str = "EUR") -> tuple:
@@ -314,7 +314,7 @@ async def math_command(message: Message):
     logger.info(f"Processing math expression: {expression}")
 
     response, result = calculate_result(expression)
-    await message.answer(response, parse_mode=ParseMode.MARKDOWN if result is not None else None)
+    await message.answer(response, parse_mode=ParseMode.HTML.value if result is not None else None)
 
 
 @router.message(Command("groupid"))
@@ -329,7 +329,7 @@ async def groupid_command(message: Message):
         await message.reply(
             f"📢 Group ID: `{chat.id}`\n"
             f"Group Name: *{chat.title}*",
-            parse_mode=ParseMode.MARKDOWN)
+            parse_mode=ParseMode.HTML.value)
         logger.info(f"Sent group ID information for chat {chat.id}")
     else:
         await message.reply(
