@@ -39,6 +39,17 @@ services:
     volumes:
       - ./certbot/www:/var/www/certbot
       - ./certbot/conf:/etc/letsencrypt
-    entrypoint: /bin/sh -c
+
+
+  certbot-renew:
+    image: certbot/certbot
+    container_name: certbot_renew_bcx
+    volumes:
+      - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt
+      - ../logs/certbot:/var/log/letsencrypt
+    entrypoint: sh -c
     command: >
-      "trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;"
+      "trap exit TERM; while :; do certbot renew --quiet >> /var/log/letsencrypt/renew.log 2>&1; sleep 12h & wait $${!}; done;"
+    restart: unless-stopped
+

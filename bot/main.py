@@ -99,3 +99,13 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+"""
+docker-compose run --rm certbot certonly --webroot \
+  --webroot-path /var/www/certbot \
+  --email office@afg.ge \
+  --agree-tos \
+  --no-eff-email \
+  -d bcxbot.duckdns.org
+  
+"""
