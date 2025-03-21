@@ -9,4 +9,3 @@ def log_update(update: Update) -> None:
             f"Received message from {update.message.from_user.username} "
             f"(id: {update.message.from_user.id}): {update.message.text}"
         )
-

@@ -2,6 +2,7 @@ import re
 from logger import logger
 import trafilatura
 
+
 def parse_XE_rates(input_str: str) -> float:
     """
     Parse XE.com HTML content to extract exchange rate.

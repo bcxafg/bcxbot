@@ -6,3 +6,4 @@ simpleeval>=1.0.3
 telegram>=0.0.1
 trafilatura>=2.0.0
 twilio>=9.5.0
+aiogram
