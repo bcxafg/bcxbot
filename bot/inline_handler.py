@@ -1,23 +1,23 @@
-
-from telegram import Update, InlineQueryResultArticle, InputTextMessageContent
-from telegram.ext import ContextTypes
-from telegram.constants import ParseMode
+from aiogram import Router, F, Dispatcher
+from aiogram.types import InlineQuery, InlineQueryResultArticle, InputTextMessageContent
+from aiogram.enums import ParseMode
 from handlers import calculate_result
-from logger import logger
+import logging
 
-async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+logger = logging.getLogger(__name__)
+router = Router()
+
+
+@router.inline_query()
+async def inline_query_handler(query: InlineQuery):
     """Handle inline query for math calculations."""
     try:
-        query = update.inline_query
-        if not query:
-            logger.warning("Received empty inline query")
-            return
-
         query_text = query.query.strip()
         logger.info(f"Processing inline math query: {query_text}")
 
+        raw_result = None  # добавил, чтоб не было ошибки на 51й строке
+
         if not query_text:
-            # Provide help text for empty queries
             results = [
                 InlineQueryResultArticle(
                     id='help',
@@ -34,7 +34,7 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 query_text = '/' + query_text
 
             result, raw_result = calculate_result(query_text)
-            
+
             results = [
                 InlineQueryResultArticle(
                     id='1',
@@ -47,7 +47,7 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 )
             ]
 
-        await query.answer(results)
+        await query.answer(results, cache_time=1)
         if raw_result is not None:
             logger.info(f"Successfully calculated inline query: {query_text}")
         else:
@@ -55,17 +55,18 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     except Exception as e:
         logger.error(f"Error in inline query handler: {str(e)}")
-        # Provide error feedback to user
-        try:
-            await query.answer([
-                InlineQueryResultArticle(
-                    id='error',
-                    title="Error",
-                    description="An error occurred. Please try again.",
-                    input_message_content=InputTextMessageContent(
-                        message_text="Sorry, an error occurred. Please try again."
-                    )
+        await query.answer([
+            InlineQueryResultArticle(
+                id='error',
+                title="Error",
+                description="An error occurred. Please try again.",
+                input_message_content=InputTextMessageContent(
+                    message_text="Sorry, an error occurred. Please try again."
                 )
-            ])
-        except Exception as e2:
-            logger.error(f"Failed to send error message: {str(e2)}")
+            )
+        ], cache_time=1)
+
+
+def register_inline_handler(dp: Dispatcher):
+    """Register inline handler"""
+    dp.include_router(router)

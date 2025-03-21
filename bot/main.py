@@ -1,106 +1,92 @@
-import os
-import logging
-import signal
-import sys
 import asyncio
-from telegram import Bot
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, InlineQueryHandler
-from config import TOKEN, DEBUG, WEBHOOK_URL
-from handlers import (
-    start_command, help_command, currency_command, rico_command,
-    error_handler, math_command, groupid_command
+import logging
+import os
+from aiohttp import web
+from aiogram import Bot, Dispatcher
+from aiogram.enums import ParseMode
+from aiogram.client.session.aiohttp import AiohttpSession
+from aiogram.client.default import DefaultBotProperties
+from datetime import datetime
+
+from config import TOKEN, DEBUG, WEBHOOK_URL, WEBHOOK_PATH, WEBAPP_HOST, WEBAPP_PORT
+from handlers import register_handlers
+from inline_handler import register_inline_handler
+
+
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler(f'bot_{datetime.now().strftime("%Y%m%d")}.log')
+    ]
 )
-from inline_handler import inline_query
-from logger import logger
-
-app = None
+logger = logging.getLogger(__name__)
 
 
-def signal_handler(signum, frame):
-    logger.info(f"🛑 Received signal {signum}, initiating shutdown...")
-    if app and app.is_running:
-        asyncio.create_task(cleanup())
+
+async def on_startup(bot: Bot):
+    await bot.set_webhook(WEBHOOK_URL)
+    logger.info(f"Webhook установлен на {WEBHOOK_URL}")
 
 
-async def cleanup():
-    global app
-    logger.info("🧹 Starting cleanup...")
+async def on_shutdown(bot: Bot):
+    await bot.delete_webhook()
+    logger.info("Webhook удалён")
 
-    if app:
-        try:
-            logger.info("🛑 Stopping bot application...")
-            await app.stop()
-            await app.shutdown()
-            logger.info("✅ Bot application stopped")
-        except Exception as e:
-            logger.error(f"⚠️ Error stopping bot: {e}")
+
+async def handle_update(request: web.Request):
+    bot = request.app['bot']
+    dispatcher = request.app['dispatcher']
+    update = await request.json()
+    await dispatcher.feed_raw_update(bot, update)
+    return web.Response()
 
 
 async def main():
-    global app
+    # Создание экземпляра бота и диспетчера
+    session = AiohttpSession()
+    bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML.value), session=session)
 
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
+    dp = Dispatcher()
 
-    if not TOKEN:
-        logger.error("❌ No token provided. Set TELEGRAM_BOT_TOKEN environment variable.")
-        return 1
-
-    app = ApplicationBuilder().token(TOKEN).build()
-
-    # Command handlers
-    app.add_handler(CommandHandler("start", start_command))
-    app.add_handler(CommandHandler("help", help_command))
-
-    for curr in ["EUR", "USD", "AED", "PLN", "RUB"]:
-        app.add_handler(CommandHandler(
-            curr.lower(),
-            lambda update, context, currency=curr: currency_command(update, context, currency)
-        ))
-
-    app.add_handler(CommandHandler("rico", rico_command))
-    app.add_handler(CommandHandler("groupid", groupid_command))
-
-    # Math expression handler
-    app.add_handler(MessageHandler(
-        filters.COMMAND & filters.Regex(r'^/[1-9]'),
-        math_command
-    ))
-
-    # Inline handler
-    app.add_handler(InlineQueryHandler(inline_query))
-
-    await app.initialize()
-    await app.start()
+    # Регистрация обработчиков
+    register_handlers(dp)
+    register_inline_handler(dp)
 
     if DEBUG:
-        logger.info("🚀 Starting bot in DEBUG (polling) mode")
-        await app.updater.start_polling(
-            drop_pending_updates=True,
-            allowed_updates=["message", "callback_query", "inline_query"],
-            read_timeout=30,
-            write_timeout=30
-        )
+        # Режим отладки: использовать long polling
+        logger.info("🚀 Запуск в режиме DEBUG (Polling)")
+        await dp.start_polling(bot)
     else:
-        logger.info("🚀 Starting bot in PRODUCTION (webhook) mode")
-        await app.bot.set_webhook(url=WEBHOOK_URL)
-        await app.run_webhook(
-            listen='127.0.0.1',
-            port=8443,
-            url_path=TOKEN,
-            webhook_url=WEBHOOK_URL
-        )
+        # Продакшн-режим: использовать webhook
+        logger.info("🚀 Запуск в режиме PRODUCTION (Webhook)")
 
-    try:
-        while True:
-            await asyncio.sleep(1)
+        # Создание веб-приложения aiohttp
+        app = web.Application()
+        app['bot'] = bot
+        app['dispatcher'] = dp
+        app.router.add_post(WEBHOOK_PATH, handle_update)
 
-    except Exception as e:
-        logger.error(f"❌ Error: {e}")
+        # Настройка хуков на запуск и остановку
+        app.on_startup.append(lambda _: on_startup(bot))
+        app.on_shutdown.append(lambda _: on_shutdown(bot))
 
-    finally:
-        await cleanup()
+        # Запуск веб-сервера
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, WEBAPP_HOST, WEBAPP_PORT)
+        await site.start()
 
+        logger.info(f"Веб-сервер запущен на {WEBAPP_HOST}:{WEBAPP_PORT}")
 
-if __name__ == '__main__':
+        # Бесконечный цикл для поддержания работы
+        try:
+            while True:
+                await asyncio.sleep(3600)  # Спать час
+        except (KeyboardInterrupt, SystemExit):
+            logger.info("Остановка бота...")
+
+if __name__ == "__main__":
     asyncio.run(main())
