@@ -28,3 +28,5 @@ services:
       - ../bot:/app
       - ../logs/bot:/app/logs
     restart: unless-stopped
+    env_file:
+      - .env
