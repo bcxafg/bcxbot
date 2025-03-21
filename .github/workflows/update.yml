@@ -1,0 +1,23 @@
+name: Recode update
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Deploy via SSH
+      uses: appleboy/ssh-action@v0.1.5
+      with:
+        host: 167.99.210.64
+        username: root
+        key: ${{ secrets.SSH_KEY }}
+        script: |
+          cd /home/bcxbot/docker
+          git pull origin main
+          docker-compose down
+          docker-compose up -d

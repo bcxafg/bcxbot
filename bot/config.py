@@ -9,10 +9,14 @@ if DEBUG:
 else:
     TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '')  # Bot token should be set in environment variables
 
-
+# Параметры вебхука
 WEBHOOK_DOMAIN = os.getenv('WEBHOOK_DOMAIN', '')
 WEBHOOK_PATH = f"/{TOKEN}"
 WEBHOOK_URL = f"https://{WEBHOOK_DOMAIN}{WEBHOOK_PATH}"
+
+# Параметры веб-сервера
+WEBAPP_HOST = '0.0.0.0'  # Слушать на всех интерфейсах
+WEBAPP_PORT = 8443
 
 
 # Command descriptions

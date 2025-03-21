@@ -8,7 +8,7 @@ from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.client.default import DefaultBotProperties
 from datetime import datetime
 
-from config import TOKEN, DEBUG
+from config import TOKEN, DEBUG, WEBHOOK_URL, WEBHOOK_PATH, WEBAPP_HOST, WEBAPP_PORT
 from handlers import register_handlers
 from inline_handler import register_inline_handler
 
@@ -24,15 +24,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
-# Параметры вебхука
-WEBHOOK_DOMAIN = os.getenv('WEBHOOK_DOMAIN', 'bcxbot.duckdns.org')
-WEBHOOK_PATH = f"/{TOKEN}"
-WEBHOOK_URL = f"https://{WEBHOOK_DOMAIN}{WEBHOOK_PATH}"
-
-# Параметры веб-сервера
-WEBAPP_HOST = '0.0.0.0'  # Слушать на всех интерфейсах
-WEBAPP_PORT = 8443
 
 
 async def on_startup(bot: Bot):
